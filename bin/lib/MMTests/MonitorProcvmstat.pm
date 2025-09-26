@@ -96,6 +96,16 @@ my %_fieldNameMap = (
 	"mmtests_faults_pct_numa"	=> "NUMA hint faults %age",
 	"numa_pages_migrated"		=> "NUMA pages migrated",
 	"mmtests_autonuma_cost"		=> "AutoNUMA cost",
+	"pgdemote_kswapd"		=> "Kswapd demoted pages",
+	"pgdemote_direct"		=> "Direct demoted pages",
+	"pgdemote_khugepaged"		=> "Khugepaged demoted pages",
+	"pgdemote_proactive"		=> "Proactive demoted pages",
+	"mmtests_pgdemote_total"	=> "Total demoted pages",
+	"pgpromote_success"		=> "Promoted pages success",
+	"pgpromote_candidate"		=> "Promoted pages candidate",
+	"mmtests_pgpromote_efficiency"	=> "Promotion efficiency %",
+	"mmtests_pgdemote_velocity"	=> "Demotion velocity",
+	"mmtests_pgpromote_velocity"	=> "Promotion velocity",
 );
 
 my @_old_migrate_stats = (
@@ -271,6 +281,18 @@ sub parseVMStat($)
 			if ($stat eq "numa_huge_pte_updates") {
 				$current_value -= $value * 512;
 			}
+		} elsif ($subHeading eq "mmtests_pgdemote_total") {
+			if ($stat eq "pgdemote_kswapd" || $stat eq "pgdemote_direct" || $stat eq "pgdemote_khugepaged" || $stat eq "pgdemote_proactive") {
+				$current_value += $value;
+			}
+		} elsif ($subHeading eq "mmtests_pgpromote_efficiency") {
+			# Store values for efficiency calculation
+			if ($stat eq "pgpromote_success") {
+				$current_values{"pgpromote_success"} = $value;
+			}
+			if ($stat eq "pgpromote_candidate") {
+				$current_values{"pgpromote_candidate"} = $value;
+			}
 		} elsif ($stat eq $subHeading) {
 			$current_value = $value;
 		}
@@ -343,6 +365,14 @@ sub parseVMStat($)
 			return -1;
 		}
 		return $hint_faults * 100 / $minor_faults;
+	} elsif ($subHeading eq "mmtests_pgpromote_efficiency") {
+		my $promote_success = $current_values{"pgpromote_success"} - $last_values{"pgpromote_success"};
+		my $promote_candidate = $current_values{"pgpromote_candidate"} - $last_values{"pgpromote_candidate"};
+
+		if ($promote_candidate == 0) {
+			return -1;
+		}
+		return $promote_success * 100 / $promote_candidate;
 	} else {
 		my $delta_value = 0;
 		if ($self->{_LastValue}) {

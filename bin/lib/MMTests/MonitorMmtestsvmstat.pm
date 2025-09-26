@@ -84,6 +84,16 @@ my %_fieldNameMap = (
 	"compact_daemon_wake",		=> "Kcompactd wake",
 	"compact_daemon_migrate_scanned"=> "Kcompactd migrate scanned",
 	"compact_daemon_free_scanned"	=> "Kcompactd free scanned",
+	"pgdemote_kswapd"		=> "Kswapd demoted pages",
+	"pgdemote_direct"		=> "Direct demoted pages",
+	"pgdemote_khugepaged"		=> "Khugepaged demoted pages",
+	"pgdemote_proactive"		=> "Proactive demoted pages",
+	"mmtests_pgdemote_total"	=> "Total demoted pages",
+	"pgpromote_success"		=> "Promoted pages success",
+	"pgpromote_candidate"		=> "Promoted pages candidate",
+	"mmtests_pgpromote_efficiency"	=> "Promotion efficiency %",
+	"mmtests_pgdemote_velocity"	=> "Demotion velocity",
+	"mmtests_pgpromote_velocity"	=> "Promotion velocity",
 );
 
 my %_renamed_fields = (
@@ -165,6 +175,16 @@ my @_fieldOrder = (
 	"mmtests_hint_local",
 	"numa_pages_migrated",
 	"mmtests_autonuma_cost",
+	"pgdemote_kswapd",
+	"pgdemote_direct",
+	"pgdemote_khugepaged",
+	"pgdemote_proactive",
+	"mmtests_pgdemote_total",
+	"pgpromote_success",
+	"pgpromote_candidate",
+	"mmtests_pgpromote_efficiency",
+	"mmtests_pgdemote_velocity",
+	"mmtests_pgpromote_velocity",
 );
 
 sub extractReport($$$$) {
@@ -348,7 +368,9 @@ sub extractReport($$$$) {
 			 "thp_fault_alloc", "thp_collapse_alloc",
 			 "thp_split_page", "thp_split_page_failed",
 			 "thp_fault_fallback",
-			 "thp_collapse_alloc_failed") {
+			 "thp_collapse_alloc_failed",
+			 "pgdemote_kswapd", "pgdemote_direct", "pgdemote_khugepaged", "pgdemote_proactive",
+			 "pgpromote_success", "pgpromote_candidate") {
 		if (!defined($vmstat_after{$key})) {
 			$vmstat{$key} = 0;
 		} else {
@@ -404,6 +426,20 @@ sub extractReport($$$$) {
 			$Ci * $vmstat{"numa_pages_migrated"};
 			$Cpagerw * $vmstat{"numa_pages_migrated"};
 	$vmstat{"mmtests_autonuma_cost"} /= 1000000;
+
+	# Memory tiering metrics
+	$vmstat{"mmtests_pgdemote_total"} = $vmstat{"pgdemote_kswapd"} + $vmstat{"pgdemote_direct"} + $vmstat{"pgdemote_khugepaged"} + $vmstat{"pgdemote_proactive"};
+
+	# Promotion efficiency
+	if ($vmstat{"pgpromote_candidate"}) {
+		$vmstat{"mmtests_pgpromote_efficiency"} = $vmstat{"pgpromote_success"} * 100 / $vmstat{"pgpromote_candidate"};
+	} else {
+		$vmstat{"mmtests_pgpromote_efficiency"} = 0;
+	}
+
+	# Memory tiering velocity (pages per second)
+	$vmstat{"mmtests_pgdemote_velocity"} = $vmstat{"mmtests_pgdemote_total"} / $elapsed_time;
+	$vmstat{"mmtests_pgpromote_velocity"} = $vmstat{"pgpromote_success"} / $elapsed_time;
 
 	# Compaction efficiency
 	if ($vmstat{"compact_stall"}) {
