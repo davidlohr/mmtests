@@ -1,0 +1,77 @@
+#!/bin/bash
+# This is the script for running the hackbench benchmark via
+# perf sched bench messaging
+###SHELLPACK preamble hackbench-bench 6.15
+CONN_NAME=
+CONN_SWITCH=
+TASK_SWITCH=
+HACKBENCH_TYPE=process
+
+###SHELLPACK parseargBegin
+###SHELLPACK parseargInstall
+	--pipes)
+		CONN_SWITCH="--pipe"
+		CONN_NAME=pipes
+		shift
+		;;
+	--sockets)
+		CONN_SWITCH=
+		CONN_NAME=sockets
+		shift
+		;;
+###SHELLPACK parseargParam --min-groups HACKBENCH_MIN_GROUPS
+###SHELLPACK parseargParam --max-groups HACKBENCH_MAX_GROUPS
+###SHELLPACK parseargParam --iterations HACKBENCH_ITERATIONS
+###SHELLPACK parseargParam --type       HACKBENCH_TYPE
+###SHELLPACK parseargParam --loops	HACKBENCH_LOOPS
+###SHELLPACK parseargEnd
+###SHELLPACK monitor_hooks
+
+if [ "$HACKBENCH_TYPE" = "thread" ]; then
+	TASK_SWITCH="--thread"
+fi
+
+###SHELLPACK check_external_install_required perfbuild perfbuild-${VERSION} ${VERSION}
+###SHELLPACK init_complete
+
+PERF_DIR=$SHELLPACK_SOURCES/perfbuild-${VERSION}-installed/bin
+PERF_CMD=${PERF_DIR}/perf
+
+RESULTSLOG=$LOGDIR_RESULTS/hackbench
+
+# Ensure we don't hit the open file descriptor ulimit when running
+# hackbench-threads-*. " * 2" adds a bit of headroom for marvin's
+# processes, e.g. monitors.
+ulimit -n $((HACKBENCH_MAX_GROUPS * 40 * 2))
+
+TIMEOUT=900
+
+###SHELLPACK threads_large_stride_begin $HACKBENCH_MIN_GROUPS $HACKBENCH_MAX_GROUPS
+	mmtests_activity $CONN_NAME
+	monitor_pre_hook $LOGDIR_RESULTS $NR_THREADS
+
+	###SHELLPACK iteration_begin $HACKBENCH_ITERATIONS
+		ATTEMPT=0
+		RET=-1
+		while [ $RET -ne 0 -a $ATTEMPT -lt 5 ]; do
+			ATTEMPT=$((ATTEMPT+1))
+			echo Running attempt $ATTEMPT $CONN_NAME $NR_THREADS groups iteration $ITERATION/$HACKBENCH_ITERATIONS
+			timeout ${TIMEOUT}s $TIME_CMD -o $LOGDIR_RESULTS/time-$NR_THREADS-$ITERATION  			\
+				$PERF_CMD bench sched messaging 					\
+					$CONN_SWITCH $TASK_SWITCH -g $NR_THREADS -l $HACKBENCH_LOOPS 	\
+					> $LOGDIR_RESULTS/hackbench-$NR_THREADS-$ITERATION
+			RET=$?
+		done
+
+		# Failure likely due to open file or pid limitations
+		if [ $? -ne 0 ]; then
+			monitor_post_hook $LOGDIR_RESULTS $NR_THREADS
+			rm $LOGDIR_RESULTS/hackbench-$NR_THREADS-$ITERATION
+			exit $SHELLPACK_SUCCESS
+		fi
+	###SHELLPACK iteration_end $HACKBENCH_ITERATIONS
+	
+	monitor_post_hook $LOGDIR_RESULTS $NR_THREADS
+###SHELLPACK threads_stride_end
+
+exit $RETVAL

@@ -1,0 +1,18 @@
+export MMTESTS="llamacpp"
+
+# List of monitors
+export RUN_MONITOR=yes
+export MONITORS_ALWAYS=
+export MONITORS_GZIP="proc-vmstat mpstat"
+export MONITORS_WITH_LATENCY="vmstat"
+export MONITOR_UPDATE_FREQUENCY=10
+
+# LLama.cpp benchmark - Small model for quick testing
+export LLAMACPP_MODEL_SIZE=$MEMTOTAL_BYTES*1/20           # Memory allocation for model (20th of total RAM)
+export LLAMACPP_COMPUTE_BACKEND=cpu                      # Use CPU backend for inference
+export LLAMACPP_MIN_THREADS=1                            # Start thread scaling from 1 thread
+export LLAMACPP_MAX_THREADS=$NUMCPUS                     # Scale up to all available CPU cores
+#export LLAMACPP_BATCH_SIZE=256                          # Batch size for processing (optional)
+export LLAMACPP_ITERATIONS=5                             # Number of benchmark iterations to run
+#export LLAMACPP_PROMPT_TOKENS=256                       # Number of prompt tokens to process (optional)
+#export LLAMACPP_GEN_TOKENS=64                           # Number of tokens to generate (optional)

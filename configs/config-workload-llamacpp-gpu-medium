@@ -1,0 +1,20 @@
+export MMTESTS="llamacpp"
+
+# List of monitors
+export RUN_MONITOR=yes
+export MONITORS_ALWAYS=
+export MONITORS_GZIP="proc-vmstat mpstat turbostat"
+export MONITORS_WITH_LATENCY="vmstat"
+export MONITOR_UPDATE_FREQUENCY=10
+
+# LLama.cpp benchmark - GPU accelerated
+export LLAMACPP_MODEL_SIZE=$MEMTOTAL_BYTES*4/5
+export LLAMACPP_COMPUTE_BACKEND=cuda
+export LLAMACPP_MIN_THREADS=1
+export LLAMACPP_MAX_THREADS=4
+export LLAMACPP_BATCH_SIZE=512
+export LLAMACPP_ITERATIONS=3
+export LLAMACPP_PROMPT_TOKENS=512
+export LLAMACPP_GEN_TOKENS=128
+
+# Note: Change LLAMACPP_COMPUTE_BACKEND to opencl or vulkan for other GPU backends

@@ -1,0 +1,60 @@
+#!/bin/bash
+###SHELLPACK preamble llamacpp-install 0
+GIT_LOCATION=https://github.com/ggml-org/llama.cpp.git
+MIRROR_LOCATION="$WEBROOT/llamacpp/"
+
+###SHELLPACK parseargBegin
+###SHELLPACK parseargParam --compute-backend	LLAMACPP_COMPUTE_BACKEND
+###SHELLPACK parseargEnd
+
+install-depends git cmake build-essential pkg-config
+
+# GPU backend dependencies
+if [ "$LLAMACPP_COMPUTE_BACKEND" = "cuda" ]; then
+	install-depends nvidia-cuda-toolkit nvidia-cuda-dev
+elif [ "$LLAMACPP_COMPUTE_BACKEND" = "opencl" ]; then
+	install-depends opencl-headers ocl-icd-opencl-dev
+elif [ "$LLAMACPP_COMPUTE_BACKEND" = "vulkan" ]; then
+	install-depends vulkan-tools libvulkan-dev vulkan-validationlayers-dev spirv-tools
+fi
+
+###SHELLPACK git_fetch llamacpp-${VERSION}.tar.gz llamacpp-${VERSION}
+
+###SHELLPACK build_start llamacpp-${VERSION}
+
+# CMake requires out-of-source builds - create separate build directory
+# Unlike autotools projects, CMake projects cannot build in the source directory
+mkdir -p build
+cd build
+
+# Configure CMake with appropriate backend
+CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$SHELLPACK_SOURCES/llamacpp-${VERSION}-installed"
+
+case "$LLAMACPP_COMPUTE_BACKEND" in
+cuda)
+	CMAKE_FLAGS="$CMAKE_FLAGS -DLLAMA_CUBLAS=ON"
+	;;
+opencl)
+	CMAKE_FLAGS="$CMAKE_FLAGS -DLLAMA_CLBLAST=ON"
+	;;
+vulkan)
+	CMAKE_FLAGS="$CMAKE_FLAGS -DLLAMA_VULKAN=ON"
+	;;
+cpu|*)
+	CMAKE_FLAGS="$CMAKE_FLAGS -DLLAMA_CUBLAS=OFF -DLLAMA_METAL=OFF"
+	;;
+esac
+
+echo "Configuring llama.cpp with CMake flags: $CMAKE_FLAGS"
+cmake .. $CMAKE_FLAGS || die Failed to configure llama.cpp with CMake
+
+# Use standard MMTests build pattern
+###SHELLPACK make_make_install
+
+# Create models directory
+mkdir -p $SHELLPACK_SOURCES/llamacpp-${VERSION}-installed/models
+
+# Set up library path for runtime
+echo "$SHELLPACK_SOURCES/llamacpp-${VERSION}-installed/lib" > $SHELLPACK_SOURCES/llamacpp-${VERSION}-installed/lib_path.conf
+
+echo llamacpp installed successfully

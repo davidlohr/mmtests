@@ -1,0 +1,23 @@
+export MMTESTS="llamacpp"
+
+# List of monitors
+export RUN_MONITOR=yes
+export MONITORS_ALWAYS=
+export MONITORS_GZIP="proc-vmstat mpstat turbostat"
+export MONITORS_WITH_LATENCY="vmstat"
+export MONITOR_UPDATE_FREQUENCY=10
+
+# LLama.cpp benchmark - CUDA GPU backend
+export LLAMACPP_MODEL_SIZE=$MEMTOTAL_BYTES*4/5            # Memory allocation for model (80% of total RAM)
+export LLAMACPP_COMPUTE_BACKEND=cuda                     # Use CUDA GPU backend for inference
+export LLAMACPP_MIN_THREADS=1                            # Start with minimal CPU coordination threads
+export LLAMACPP_MAX_THREADS=4                            # GPU backends need fewer CPU threads (1-4 optimal)
+export LLAMACPP_BATCH_SIZE=512                           # Batch size optimized for GPU processing
+export LLAMACPP_ITERATIONS=5                             # Number of benchmark iterations to run
+export LLAMACPP_PROMPT_TOKENS=512                        # Number of prompt tokens to process
+export LLAMACPP_GEN_TOKENS=128                           # Number of tokens to generate
+
+# Additional GPU-specific options (optional)
+#export LLAMACPP_MODEL_NUMA=distribute                   # NUMA memory distribution strategy
+#export LLAMACPP_WARMUP=yes                              # Enable GPU warmup (default)
+#export LLAMACPP_NO_KVOFFLOAD=0                          # Allow KV cache offloading to GPU (0=allow, 1=disable)

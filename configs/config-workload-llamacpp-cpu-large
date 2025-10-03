@@ -1,0 +1,18 @@
+export MMTESTS="llamacpp"
+
+# List of monitors  
+export RUN_MONITOR=yes
+export MONITORS_ALWAYS=
+export MONITORS_GZIP="proc-vmstat mpstat turbostat"
+export MONITORS_WITH_LATENCY="vmstat"
+export MONITOR_UPDATE_FREQUENCY=10
+
+# LLama.cpp benchmark - Large model for intensive testing
+export LLAMACPP_MODEL_SIZE=$MEMTOTAL_BYTES*7/10           # Memory allocation for model (70% of total RAM)
+export LLAMACPP_COMPUTE_BACKEND=cpu                      # Use CPU backend for inference
+export LLAMACPP_MIN_THREADS=1                            # Start thread scaling from 1 thread
+export LLAMACPP_MAX_THREADS=$NUMCPUS                     # Scale up to all available CPU cores
+export LLAMACPP_BATCH_SIZE=1024                          # Larger batch size for intensive workload
+export LLAMACPP_ITERATIONS=3                             # Fewer iterations due to longer runtime
+export LLAMACPP_PROMPT_TOKENS=1024                       # Large prompt token count for testing
+export LLAMACPP_GEN_TOKENS=256                           # Generate more tokens per iteration

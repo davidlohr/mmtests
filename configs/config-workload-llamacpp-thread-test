@@ -1,0 +1,15 @@
+# LLama.cpp Thread Scaling Test Configuration
+# Based on config-workload-stream-single
+
+MMTESTS="llamacpp"
+AUTO_PACKAGE_INSTALL=yes
+
+# LLama.cpp Configuration
+export LLAMACPP_MODEL_SIZE=$MEMTOTAL_BYTES*4/5
+export LLAMACPP_COMPUTE_BACKEND=cpu
+export LLAMACPP_MIN_THREADS=1
+export LLAMACPP_MAX_THREADS=4
+export LLAMACPP_BATCH_SIZE=512
+export LLAMACPP_ITERATIONS=1
+export LLAMACPP_PROMPT_TOKENS=512
+export LLAMACPP_GEN_TOKENS=128

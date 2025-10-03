@@ -1123,6 +1123,28 @@ for SUBREPORT in $REPORTS; do
 			done
 			echo "</tr>"
 			;;
+		llamacpp)
+			echo "<tr>"
+			# Extract unique test types from operations (remove thread suffixes)
+			TEST_TYPES=`$EXTRACT_CMD -n $KERNEL_BASE | awk '{print $1}' | sed 's/-[0-9]*$//' | sort | uniq`
+			for TEST_TYPE in $TEST_TYPES; do
+				TITLE_SUFFIX=""
+				case $TEST_TYPE in
+				*pp*tg*)
+					TITLE_SUFFIX=" (prompt processing + text generation)"
+					;;
+				pp*)
+					TITLE_SUFFIX=" (prompt processing)"
+					;;
+				tg*)
+					TITLE_SUFFIX=" (text generation)"
+					;;
+				esac
+				eval $GRAPH_PNG --title \"$SUBREPORT $TEST_TYPE$TITLE_SUFFIX\" --sub-heading \"$TEST_TYPE\" --output $OUTPUT_DIRECTORY/graph-$SUBREPORT-$TEST_TYPE
+				plain graph-$SUBREPORT-$TEST_TYPE
+			done
+			echo "</tr>"
+			;;
 		blogbench)
 			generate_subheading_graphs "Read Write"
 			;;

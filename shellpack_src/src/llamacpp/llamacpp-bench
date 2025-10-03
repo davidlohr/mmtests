@@ -1,0 +1,239 @@
+#!/bin/bash
+###SHELLPACK preamble llamacpp-bench 0
+
+
+###SHELLPACK parseargBegin
+###SHELLPACK parseargParam --model-size		LLAMACPP_MODEL_SIZE
+###SHELLPACK parseargParam --model-url		LLAMACPP_MODEL_URL
+###SHELLPACK parseargParam --compute-backend	LLAMACPP_COMPUTE_BACKEND
+###SHELLPACK parseargParam --min-threads	LLAMACPP_MIN_THREADS
+###SHELLPACK parseargParam --max-threads	LLAMACPP_MAX_THREADS
+###SHELLPACK parseargParam --batch-size		LLAMACPP_BATCH_SIZE
+###SHELLPACK parseargParam --iterations		LLAMACPP_ITERATIONS
+###SHELLPACK parseargParam --prompt-tokens	LLAMACPP_PROMPT_TOKENS
+###SHELLPACK parseargParam --gen-tokens		LLAMACPP_GEN_TOKENS
+###SHELLPACK parseargParam --numa		LLAMACPP_MODEL_NUMA
+###SHELLPACK parseargParam --warmup		LLAMACPP_WARMUP
+###SHELLPACK parseargParam --no-kv-offload	LLAMACPP_NO_KVOFFLOAD
+###SHELLPACK parseargEnd
+###SHELLPACK monitor_hooks
+
+###SHELLPACK check_install_required llamacpp-0
+###SHELLPACK init_complete
+
+LLAMACPP_INSTALL_PATH=$SHELLPACK_SOURCES/llamacpp-${VERSION}-installed
+MODEL_DIR=$LLAMACPP_INSTALL_PATH/models
+
+# Function to select model based on memory bytes
+select_model_by_memory_bytes() {
+	local allocated_memory_bytes=$1
+	local allocated_memory_mb=$((allocated_memory_bytes / 1024 / 1024))
+	
+	echo "System memory: $((MEMTOTAL_BYTES/1024/1024))MB, Allocated for model: ${allocated_memory_mb}MB"
+	
+	# Select model based on allocated memory (including model loading overhead)
+	if [ $allocated_memory_mb -ge 800000 ]; then
+		# 800GB+: Massive model (Llama-3.1 405B Q2_K) - requires ~400GB
+		MODEL_NAME="llama-3.1-405b-instruct.Q2_K.gguf"
+		MODEL_URL="https://huggingface.co/bartowski/Meta-Llama-3.1-405B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-405B-Instruct-Q2_K.gguf"
+		MODEL_DESC="Llama-3.1 405B Q2_K (400GB model)"
+	elif [ $allocated_memory_mb -ge 500000 ]; then
+		# 500GB+: Huge model (Llama-3.1 405B Q4_0) - requires ~250GB
+		MODEL_NAME="llama-3.1-405b-instruct.Q4_0.gguf"
+		MODEL_URL="https://huggingface.co/bartowski/Meta-Llama-3.1-405B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-405B-Instruct-Q4_0.gguf"
+		MODEL_DESC="Llama-3.1 405B Q4_0 (250GB model)"
+	elif [ $allocated_memory_mb -ge 250000 ]; then
+		# 250GB+: Very Huge model (Mixtral 8x22B Q8_0) - requires ~176GB
+		MODEL_NAME="mixtral-8x22b-instruct-v0.1.Q8_0.gguf"
+		MODEL_URL="https://huggingface.co/bartowski/Mixtral-8x22B-Instruct-v0.1-GGUF/resolve/main/Mixtral-8x22B-Instruct-v0.1-Q8_0.gguf"
+		MODEL_DESC="Mixtral 8x22B Q8_0 (176GB model)"
+	elif [ $allocated_memory_mb -ge 150000 ]; then
+		# 150GB+: Ultra Large model (Llama-3.1 70B Q8_0) - requires ~140GB
+		MODEL_NAME="llama-3.1-70b-instruct.Q8_0.gguf"
+		MODEL_URL="https://huggingface.co/bartowski/Meta-Llama-3.1-70B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-70B-Instruct-Q8_0.gguf"
+		MODEL_DESC="Llama-3.1 70B Q8_0 (140GB model)"
+	elif [ $allocated_memory_mb -ge 80000 ]; then
+		# 80GB+: Ultra Large model (Falcon 180B Q2_K)
+		MODEL_NAME="falcon-180b-chat.Q2_K.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/falcon-180B-chat-GGUF/resolve/main/falcon-180b-chat.Q2_K.gguf"
+		MODEL_DESC="Falcon 180B Q2_K (74GB model)"
+	elif [ $allocated_memory_mb -ge 70000 ]; then
+		# 70GB+: Very Large model (Llama-2 70B Q8_0 highest quality)
+		MODEL_NAME="llama-2-70b-chat.Q8_0.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-70B-Chat-GGUF/resolve/main/llama-2-70b-chat.Q8_0.gguf"
+		MODEL_DESC="Llama-2 70B Q8_0 (67GB model)"
+	elif [ $allocated_memory_mb -ge 50000 ]; then
+		# 50GB+: Large model (Llama-2 70B Q5_K_M)
+		MODEL_NAME="llama-2-70b-chat.Q5_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-70B-Chat-GGUF/resolve/main/llama-2-70b-chat.Q5_K_M.gguf"
+		MODEL_DESC="Llama-2 70B Q5_K_M (48GB model)"
+	elif [ $allocated_memory_mb -ge 40000 ]; then
+		# 40GB+: Large model (Llama-2 70B Q4_K_M)
+		MODEL_NAME="llama-2-70b-chat.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-70B-Chat-GGUF/resolve/main/llama-2-70b-chat.Q4_K_M.gguf"
+		MODEL_DESC="Llama-2 70B Q4_K_M (40GB model)"
+	elif [ $allocated_memory_mb -ge 25000 ]; then
+		# 25GB+: Medium-Large model (CodeLlama 34B)
+		MODEL_NAME="codellama-34b-instruct.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/CodeLlama-34B-Instruct-GGUF/resolve/main/codellama-34b-instruct.Q4_K_M.gguf"
+		MODEL_DESC="CodeLlama 34B Instruct (20GB model)"
+	elif [ $allocated_memory_mb -ge 15000 ]; then
+		# 15GB+: Medium-Large model (Llama-2 13B Q8_0 highest quality)
+		MODEL_NAME="llama-2-13b-chat.Q8_0.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-13B-Chat-GGUF/resolve/main/llama-2-13b-chat.Q8_0.gguf"
+		MODEL_DESC="Llama-2 13B Q8_0 (14GB model)"
+	elif [ $allocated_memory_mb -ge 10000 ]; then
+		# 10GB+: Large model (Llama-2 13B ~8GB)
+		MODEL_NAME="llama-2-13b-chat.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-13B-Chat-GGUF/resolve/main/llama-2-13b-chat.Q4_K_M.gguf"
+		MODEL_DESC="Llama-2 13B (8GB model)"
+	elif [ $allocated_memory_mb -ge 6000 ]; then
+		# 6GB+: Medium model (Llama-2 7B ~4GB)
+		MODEL_NAME="llama-2-7b-chat.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf"
+		MODEL_DESC="Llama-2 7B (4GB model)"
+	elif [ $allocated_memory_mb -ge 3000 ]; then
+		# 3GB+: Small-medium model (Phi-3 3B)
+		MODEL_NAME="Phi-3-mini-4k-instruct-q4.gguf"
+		MODEL_URL="https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf"
+		MODEL_DESC="Phi-3 Mini 3.8B (2GB model)"
+	elif [ $allocated_memory_mb -ge 1500 ]; then
+		# 1.5GB+: Small model (TinyLlama 1.1B)
+		MODEL_NAME="tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+		MODEL_DESC="TinyLlama 1.1B (600MB model)"
+	else
+		# <1.5GB: Micro model (GPT-2)
+		MODEL_NAME="ggml-model-gpt-2-117M-f16.gguf"
+		MODEL_URL="https://huggingface.co/ggerganov/ggml/resolve/main/ggml-model-gpt-2-117M-f16.gguf"
+		MODEL_DESC="GPT-2 117M (460MB model)"
+	fi
+	
+	echo "Selected model: $MODEL_DESC"
+}
+
+# Validate mutually exclusive model configuration
+if [ -n "$LLAMACPP_MODEL_URL" ] && [ -n "$LLAMACPP_MODEL_SIZE" ]; then
+	die "LLAMACPP_MODEL_URL and LLAMACPP_MODEL_SIZE are mutually exclusive. Please specify only one."
+fi
+
+# Determine model to use
+if [ -n "$LLAMACPP_MODEL_URL" ]; then
+	# User specified custom model URL - extract filename as model name
+	MODEL_NAME=$(basename "$LLAMACPP_MODEL_URL")
+	MODEL_URL="$LLAMACPP_MODEL_URL"
+	echo "Using custom model: $MODEL_NAME from $MODEL_URL"
+elif [ -n "$LLAMACPP_MODEL_SIZE" ]; then
+	# Handle memory expressions at runtime
+	. $SHELLPACK_INCLUDE/include-sizes.sh
+	getmemtotals
+	ALLOCATED_BYTES=$(($LLAMACPP_MODEL_SIZE))
+	select_model_by_memory_bytes $ALLOCATED_BYTES
+	echo "Using model: $MODEL_NAME"
+else
+	die "Invalid model configuration. Either specify --model-url, or set LLAMACPP_MODEL_SIZE to a memory expression like '\$MEMTOTAL_BYTES*4/5'"
+fi
+
+MODEL_PATH="$MODEL_DIR/$MODEL_NAME"
+
+# Download model if not present
+if [ ! -f "$MODEL_PATH" ]; then
+	echo "Downloading model: $MODEL_NAME"
+	
+	# Try huggingface-cli first if available
+	if command -v huggingface-cli >/dev/null 2>&1; then
+		echo "Using huggingface-cli for download"
+		# Extract repository and filename from URL
+		if [[ "$MODEL_URL" =~ https://huggingface.co/([^/]+/[^/]+)/.*/([^/]+)$ ]]; then
+			REPO="${BASH_REMATCH[1]}"
+			FILENAME="${BASH_REMATCH[2]}"
+			cd "$MODEL_DIR"
+			huggingface-cli download "$REPO" "$FILENAME" --local-dir . --local-dir-use-symlinks False || die "Failed to download model with huggingface-cli"
+			cd "$LLAMACPP_INSTALL_PATH"
+		else
+			die "Could not parse HuggingFace URL: $MODEL_URL"
+		fi
+	else
+		echo "Using wget for download"
+		wget --user-agent="Mozilla/5.0" --header="Accept: application/octet-stream" -O "$MODEL_PATH" "$MODEL_URL" || die "Failed to download model with wget"
+	fi
+fi
+
+cd $LLAMACPP_INSTALL_PATH
+
+# Set up library path
+export LD_LIBRARY_PATH="$LLAMACPP_INSTALL_PATH/lib:$LD_LIBRARY_PATH"
+
+echo "Starting llama-bench with model: $MODEL_NAME, backend: $LLAMACPP_COMPUTE_BACKEND"
+
+mmtests_activity llamacpp
+
+###SHELLPACK threads_large_stride_begin $LLAMACPP_MIN_THREADS $LLAMACPP_MAX_THREADS
+	echo "Running with $NR_THREADS/$LLAMACPP_MAX_THREADS threads"
+	
+	###SHELLPACK iteration_begin $LLAMACPP_ITERATIONS
+		echo "Running iteration $ITERATION/$LLAMACPP_ITERATIONS with $NR_THREADS/$LLAMACPP_MAX_THREADS threads"
+		
+		echo 3 > /proc/sys/vm/drop_caches
+		
+		# Build llama-bench command arguments
+		LLAMABENCH_ARGS=(
+			--model "$MODEL_PATH"
+			--threads "$NR_THREADS"
+			--flash-attn 1
+			-pg 1024,256
+		)
+		
+		# Add optional parameters only if set
+		if [ -n "$LLAMACPP_PROMPT_TOKENS" ]; then
+			LLAMABENCH_ARGS+=(--n-prompt "$LLAMACPP_PROMPT_TOKENS")
+		fi
+		if [ -n "$LLAMACPP_GEN_TOKENS" ]; then
+			LLAMABENCH_ARGS+=(--n-gen "$LLAMACPP_GEN_TOKENS")
+		fi
+		if [ -n "$LLAMACPP_BATCH_SIZE" ]; then
+			LLAMABENCH_ARGS+=(--batch-size "$LLAMACPP_BATCH_SIZE")
+		fi
+		if [ -n "$LLAMACPP_MODEL_NUMA" ]; then
+			LLAMABENCH_ARGS+=(--numa "$LLAMACPP_MODEL_NUMA")
+		fi
+		if [ "$LLAMACPP_WARMUP" = "no" ]; then
+			LLAMABENCH_ARGS+=(--no-warmup)
+		fi
+		if [ -n "$LLAMACPP_NO_KVOFFLOAD" ]; then
+			LLAMABENCH_ARGS+=(--no-kv-offload "$LLAMACPP_NO_KVOFFLOAD")
+		fi
+
+		# Configure compute backend
+		# Use 999 layers to ensure all model layers run on GPU regardless of model size
+		case "$LLAMACPP_COMPUTE_BACKEND" in
+		cuda)
+			echo "Using CUDA GPU backend"
+			LLAMABENCH_ARGS+=(--n-gpu-layers 999)
+			;;
+		opencl)
+			echo "Using OpenCL GPU backend"
+			LLAMABENCH_ARGS+=(--n-gpu-layers 999)
+			;;
+		vulkan)
+			echo "Using Vulkan GPU backend"
+			LLAMABENCH_ARGS+=(--n-gpu-layers 999)
+			;;
+		*)
+			echo "Using CPU backend"
+			;;
+		esac
+
+		echo "Command: ./bin/llama-bench ${LLAMABENCH_ARGS[@]}"
+		
+		monitor_pre_hook $LOGDIR_RESULTS/llamacpp-${NR_THREADS}-${ITERATION}
+		save_rc ./bin/llama-bench "${LLAMABENCH_ARGS[@]}" 2>&1 | tee $LOGDIR_RESULTS/llamacpp-${NR_THREADS}-${ITERATION}.log
+		recover_rc
+		if [ $? -ne 0 ]; then
+			die "llama-bench execution failed"
+		fi
+		monitor_post_hook $LOGDIR_RESULTS/llamacpp-${NR_THREADS}-${ITERATION}
+	###SHELLPACK iteration_end
+###SHELLPACK threads_stride_end
+
+echo llama.cpp benchmark completed successfully
