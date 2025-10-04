@@ -34,25 +34,25 @@ select_model_by_memory_bytes() {
 	# Select model based on allocated memory (using realistic thresholds for large systems)
 	# Conservative model selection to avoid 401 errors, but with proper scaling for large memory
 	if [ $allocated_memory_mb -ge 300000 ]; then
-		# 300GB+: Large 7B model for massive memory systems
-		MODEL_NAME="mistral-7b-instruct-v0.1.Q4_K_M.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/mistral-7b-instruct-v0.1.Q4_K_M.gguf"
-		MODEL_DESC="Mistral 7B Instruct Q4_K_M (4.4GB model) - Massive memory config (300GB+)"
+		# 300GB+: Massive 47B model for systems with 300GB+ memory
+		MODEL_NAME="mixtral-8x7b-instruct-v0.1.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF/resolve/main/mixtral-8x7b-instruct-v0.1.Q4_K_M.gguf"
+		MODEL_DESC="Mixtral 8x7B Instruct Q4_K_M (26GB model) - Massive memory config (300GB+)"
 	elif [ $allocated_memory_mb -ge 100000 ]; then
-		# 100GB+: 7B model for very large memory systems
-		MODEL_NAME="mistral-7b-instruct-v0.1.Q4_K_M.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/mistral-7b-instruct-v0.1.Q4_K_M.gguf"
-		MODEL_DESC="Mistral 7B Instruct Q4_K_M (4.4GB model) - Very large memory config (100GB+)"
+		# 100GB+: Large 47B model for very large memory systems
+		MODEL_NAME="mixtral-8x7b-instruct-v0.1.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF/resolve/main/mixtral-8x7b-instruct-v0.1.Q4_K_M.gguf"
+		MODEL_DESC="Mixtral 8x7B Instruct Q4_K_M (26GB model) - Very large memory config (100GB+)"
 	elif [ $allocated_memory_mb -ge 50000 ]; then
-		# 50GB+: 7B model for large memory systems
-		MODEL_NAME="capybarahermes-2.5-mistral-7b.Q4_K_M.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/CapybaraHermes-2.5-Mistral-7B-GGUF/resolve/main/capybarahermes-2.5-mistral-7b.Q4_K_M.gguf"
-		MODEL_DESC="CapybaraHermes 2.5 Mistral 7B Q4_K_M (4.4GB model) - Large memory config (50GB+)"
+		# 50GB+: Medium-large 13B model for large memory systems
+		MODEL_NAME="mythomax-l2-13b.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/MythoMax-L2-13B-GGUF/resolve/main/mythomax-l2-13b.Q4_K_M.gguf"
+		MODEL_DESC="MythoMax L2 13B Q4_K_M (8GB model) - Large memory config (50GB+)"
 	elif [ $allocated_memory_mb -ge 25000 ]; then
-		# 25GB+: 7B model for medium-large memory systems  
-		MODEL_NAME="mistral-7b-instruct-v0.1.Q4_K_M.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/mistral-7b-instruct-v0.1.Q4_K_M.gguf"
-		MODEL_DESC="Mistral 7B Instruct Q4_K_M (4.4GB model) - Medium-large memory config (25GB+)"
+		# 25GB+: 13B model for medium-large memory systems  
+		MODEL_NAME="llama-2-13b-chat.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-13B-chat-GGUF/resolve/main/llama-2-13b-chat.Q4_K_M.gguf"
+		MODEL_DESC="Llama-2 13B Chat Q4_K_M (8GB model) - Medium-large memory config (25GB+)"
 	elif [ $allocated_memory_mb -ge 8000 ]; then
 		# 8GB+: 7B model for medium memory systems
 		MODEL_NAME="mistral-7b-instruct-v0.1.Q4_K_M.gguf"
