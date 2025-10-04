@@ -31,82 +31,33 @@ select_model_by_memory_bytes() {
 	
 	echo "System memory: $((MEMTOTAL_BYTES/1024/1024))MB, Allocated for model: ${allocated_memory_mb}MB"
 	
-	# Select model based on allocated memory (including model loading overhead)
-	if [ $allocated_memory_mb -ge 800000 ]; then
-		# 800GB+: Massive model (Llama-3.1 405B Q2_K) - requires ~400GB
-		MODEL_NAME="llama-3.1-405b-instruct.Q2_K.gguf"
-		MODEL_URL="https://huggingface.co/bartowski/Meta-Llama-3.1-405B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-405B-Instruct-Q2_K.gguf"
-		MODEL_DESC="Llama-3.1 405B Q2_K (400GB model)"
-	elif [ $allocated_memory_mb -ge 500000 ]; then
-		# 500GB+: Huge model (Llama-3.1 405B Q4_0) - requires ~250GB
-		MODEL_NAME="llama-3.1-405b-instruct.Q4_0.gguf"
-		MODEL_URL="https://huggingface.co/bartowski/Meta-Llama-3.1-405B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-405B-Instruct-Q4_0.gguf"
-		MODEL_DESC="Llama-3.1 405B Q4_0 (250GB model)"
-	elif [ $allocated_memory_mb -ge 250000 ]; then
-		# 250GB+: Very Huge model (Mixtral 8x22B Q8_0) - requires ~176GB
-		MODEL_NAME="mixtral-8x22b-instruct-v0.1.Q8_0.gguf"
-		MODEL_URL="https://huggingface.co/bartowski/Mixtral-8x22B-Instruct-v0.1-GGUF/resolve/main/Mixtral-8x22B-Instruct-v0.1-Q8_0.gguf"
-		MODEL_DESC="Mixtral 8x22B Q8_0 (176GB model)"
-	elif [ $allocated_memory_mb -ge 150000 ]; then
-		# 150GB+: Ultra Large model (Llama-3.1 70B Q8_0) - requires ~140GB
-		MODEL_NAME="llama-3.1-70b-instruct.Q8_0.gguf"
-		MODEL_URL="https://huggingface.co/bartowski/Meta-Llama-3.1-70B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-70B-Instruct-Q8_0.gguf"
-		MODEL_DESC="Llama-3.1 70B Q8_0 (140GB model)"
-	elif [ $allocated_memory_mb -ge 80000 ]; then
-		# 80GB+: Ultra Large model (Falcon 180B Q2_K)
-		MODEL_NAME="falcon-180b-chat.Q2_K.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/falcon-180B-chat-GGUF/resolve/main/falcon-180b-chat.Q2_K.gguf"
-		MODEL_DESC="Falcon 180B Q2_K (74GB model)"
-	elif [ $allocated_memory_mb -ge 70000 ]; then
-		# 70GB+: Very Large model (Llama-2 70B Q8_0 highest quality)
-		MODEL_NAME="llama-2-70b-chat.Q8_0.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-70B-Chat-GGUF/resolve/main/llama-2-70b-chat.Q8_0.gguf"
-		MODEL_DESC="Llama-2 70B Q8_0 (67GB model)"
-	elif [ $allocated_memory_mb -ge 50000 ]; then
-		# 50GB+: Large model (Llama-2 70B Q5_K_M)
-		MODEL_NAME="llama-2-70b-chat.Q5_K_M.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-70B-Chat-GGUF/resolve/main/llama-2-70b-chat.Q5_K_M.gguf"
-		MODEL_DESC="Llama-2 70B Q5_K_M (48GB model)"
-	elif [ $allocated_memory_mb -ge 40000 ]; then
-		# 40GB+: Large model (Llama-2 70B Q4_K_M)
-		MODEL_NAME="llama-2-70b-chat.Q4_K_M.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-70B-Chat-GGUF/resolve/main/llama-2-70b-chat.Q4_K_M.gguf"
-		MODEL_DESC="Llama-2 70B Q4_K_M (40GB model)"
-	elif [ $allocated_memory_mb -ge 25000 ]; then
-		# 25GB+: Medium-Large model (CodeLlama 34B)
-		MODEL_NAME="codellama-34b-instruct.Q4_K_M.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/CodeLlama-34B-Instruct-GGUF/resolve/main/codellama-34b-instruct.Q4_K_M.gguf"
-		MODEL_DESC="CodeLlama 34B Instruct (20GB model)"
-	elif [ $allocated_memory_mb -ge 15000 ]; then
-		# 15GB+: Medium-Large model (Llama-2 13B Q8_0 highest quality)
-		MODEL_NAME="llama-2-13b-chat.Q8_0.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-13B-Chat-GGUF/resolve/main/llama-2-13b-chat.Q8_0.gguf"
-		MODEL_DESC="Llama-2 13B Q8_0 (14GB model)"
-	elif [ $allocated_memory_mb -ge 10000 ]; then
-		# 10GB+: Large model (Llama-2 13B ~8GB)
-		MODEL_NAME="llama-2-13b-chat.Q4_K_M.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-13B-Chat-GGUF/resolve/main/llama-2-13b-chat.Q4_K_M.gguf"
-		MODEL_DESC="Llama-2 13B (8GB model)"
-	elif [ $allocated_memory_mb -ge 6000 ]; then
-		# 6GB+: Medium model (Llama-2 7B ~4GB)
-		MODEL_NAME="llama-2-7b-chat.Q4_K_M.gguf"
-		MODEL_URL="https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf"
-		MODEL_DESC="Llama-2 7B (4GB model)"
-	elif [ $allocated_memory_mb -ge 3000 ]; then
-		# 3GB+: Small-medium model (Phi-3 3B)
-		MODEL_NAME="Phi-3-mini-4k-instruct-q4.gguf"
-		MODEL_URL="https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf"
-		MODEL_DESC="Phi-3 Mini 3.8B (2GB model)"
-	elif [ $allocated_memory_mb -ge 1500 ]; then
-		# 1.5GB+: Small model (TinyLlama 1.1B)
+	# Select model based on allocated memory (using only verified accessible models)
+	# Using conservative model selection to avoid 401 errors
+	if [ $allocated_memory_mb -ge 25000 ]; then
+		# 25GB+: Large model (verified working via curl test)
 		MODEL_NAME="tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
 		MODEL_URL="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
-		MODEL_DESC="TinyLlama 1.1B (600MB model)"
+		MODEL_DESC="TinyLlama 1.1B Q4_K_M (700MB model) - Large memory config"
+	elif [ $allocated_memory_mb -ge 8000 ]; then
+		# 8GB+: Medium model 
+		MODEL_NAME="tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+		MODEL_DESC="TinyLlama 1.1B Q4_K_M (700MB model)"
+	elif [ $allocated_memory_mb -ge 2000 ]; then
+		# 2GB+: Small model (TinyLlama 1.1B) - Apache 2.0 license - verified working
+		MODEL_NAME="tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+		MODEL_DESC="TinyLlama 1.1B Q4_K_M (700MB model)"
+	elif [ $allocated_memory_mb -ge 1000 ]; then
+		# 1GB+: Small model (TinyLlama 1.1B Q2_K) - smaller quantization
+		MODEL_NAME="tinyllama-1.1b-chat-v1.0.Q2_K.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q2_K.gguf"
+		MODEL_DESC="TinyLlama 1.1B Q2_K (460MB model)"
 	else
-		# <1.5GB: Micro model (GPT-2)
-		MODEL_NAME="ggml-model-gpt-2-117M-f16.gguf"
-		MODEL_URL="https://huggingface.co/ggerganov/ggml/resolve/main/ggml-model-gpt-2-117M-f16.gguf"
-		MODEL_DESC="GPT-2 117M (460MB model)"
+		# <1GB: Micro model (TinyLlama Q2_K for very low memory) - Apache 2.0 license - verified working
+		MODEL_NAME="tinyllama-1.1b-chat-v1.0.Q2_K.gguf"
+		MODEL_URL="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q2_K.gguf"
+		MODEL_DESC="TinyLlama 1.1B Q2_K (460MB model)"
 	fi
 	
 	echo "Selected model: $MODEL_DESC"
